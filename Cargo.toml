@@ -1,0 +1,9 @@
+[package]
+name = "mmml-player"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4.5.35", features = ["derive"] }
+hound = "3.5.1"
+mmml-compiler = { git = "https://github.com/Killarexe/mmml-compiler", version = "0.1.0" }
