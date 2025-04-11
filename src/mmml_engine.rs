@@ -56,12 +56,12 @@ const SAMPLES: [u8; SAMPLE_LENGTH] = [
     // end (126)
 ];
 
-const SAMPLE_SPEED: u8 = 5;      // the sampler playback rate
+const SAMPLE_SPEED: u8 = 3;      // the sampler playback rate
 const SAMPLE_LENGTH: usize = 127; // the length of the sample array
 const MAXLOOPS: usize = 5;        // the maximum number of nested loops
 const TOTAL_VOICES: usize = 4;    // total number of 1-bit voices to synthesize
 const AMPLITUDE: u8 = 127;        // waveform high position (maximum from DC zero is 127)
-const DC_OFFSET: u8 = 127;        // waveform low position (127 is DC zero)
+const DC_OFFSET: u8 = 0;        // waveform low position (127 is DC zero)
 
 const LOOP_START: u8 = 0x00;
 const LOOP_END: u8 = 0x01;
@@ -221,6 +221,8 @@ impl MMMLSynthesizer {
                 }
             }
 
+
+
             /**************************
              *  Data Processing Code  *
              **************************/
@@ -228,6 +230,7 @@ impl MMMLSynthesizer {
             if self.tick_counter == 0 {
                 // Variable tempo, sets the fastest / smallest possible clock event.
                 self.tick_counter = self.tick_speed;
+                let mut has_ended: [bool; TOTAL_VOICES] = [false, false, false, false];
 
                 for v in 0..TOTAL_VOICES {
                     // If the note ended, start processing the next byte of data.
@@ -271,8 +274,7 @@ impl MMMLSynthesizer {
                                                                        (mmml_source[macro_ptr + 1] as u16);
                                     },
                                     TEMPO => {
-                                        // A bit crappy
-                                        self.tick_speed = ((buffer3 as u16) << 5) - 0xFF;
+                                        self.tick_speed = (buffer3 as u16) << 3;
                                         self.channels[v].data_pointer += 2;
                                     },
                                     4 => {
@@ -297,16 +299,6 @@ impl MMMLSynthesizer {
                                         self.channels[v].data_pointer += 1;
                                     },
                                     CHANNEL_END => {
-                                        let mut all_end: bool = true;
-                                        for channel in self.channels.iter() {
-                                            if channel.pointer_location != 0 {
-                                                all_end = false;
-                                                break;
-                                            }
-                                        }
-                                        if all_end {
-                                            return result;
-                                        }
                                         if self.channels[v].pointer_location != 0 {
                                             self.channels[v].data_pointer = self.channels[v].pointer_location;
                                             self.channels[v].pointer_location = 0;
@@ -314,6 +306,7 @@ impl MMMLSynthesizer {
                                             // Goes to loop again
                                             self.channels[v].data_pointer = ((mmml_source[v * 2] as u16) << 8) | 
                                                                            (mmml_source[v * 2 + 1] as u16);
+                                            has_ended[v] = true;
                                         }
                                     },
                                     _ => {
@@ -321,13 +314,23 @@ impl MMMLSynthesizer {
                                         self.channels[v].data_pointer += 1;
                                     }
                                 }
+                                let mut all_end: bool = true;
+                                for v in 0..TOTAL_VOICES {
+                                    if !has_ended[v] {
+                                        all_end = false;
+                                        break;
+                                    }
+                                }
+                                if all_end {
+                                    return result;
+                                }
 
                                 continue 'voice_processing;
                             }
                             
                             match buffer1 {
                                 OCTAVE => {
-                                    self.channels[v].octave = 1 << buffer2;
+                                    self.channels[v].octave = 2 << buffer2;
                                     self.channels[v].data_pointer += 1;
                                     continue 'voice_processing;
                                 },
@@ -377,6 +380,7 @@ impl MMMLSynthesizer {
             } else {
                 self.tick_counter -= 1;
             }
+
         }
     }
 }

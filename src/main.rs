@@ -53,7 +53,7 @@ fn play_mmml(data: Vec<u8>, args: MMMLPlayerArgs) {
             println!("Creating WAV file...");
             let specs: WavSpec = WavSpec {
                 channels: 1,
-                sample_rate: 352800, // 1-bit music demands higer rates
+                sample_rate: 141120, // 1-bit music demands higer rates
                 bits_per_sample: 8,
                 sample_format: SampleFormat::Int
             };
