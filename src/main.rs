@@ -26,12 +26,14 @@ fn get_mmml_data(data: Vec<u8>) -> Result<Vec<u8>, Error> {
         d.push(0x00);
         return Ok(d);
     }
+    if data[data.len() - 2] == 0xFF {
+        return Ok(data);
+    }
     if let Ok(source_code) = String::from_utf8(data) {
         println!("Compiling µMML file...");
         let mut lexer: Lexer = Lexer::new(source_code);
         let mut compiler: Compiler = Compiler::new(lexer.tokenize()?);
-        let mut mmml_data: Vec<u8> = compiler.compile()?;
-        mmml_data.push(0x00);
+        let mmml_data: Vec<u8> = compiler.compile()?;
         println!("Compiling complete!");
         return Ok(mmml_data);
     }
